@@ -1,0 +1,54 @@
+<html>
+	<h1><a href="https://dl.dropboxusercontent.com/u/36545054/Amia/Img/ffscreen.png">What this can do</a> Nvidia Cards only. Might not work for all cards. (Might take a few tries)</h1>
+	<h3>DISCLAIMER: If you damage your system doing this, I am not responsible, but I have a hard time seeing how you could really do that.</h3>
+	<ol type="1">
+		<li>
+			Obtain your current desktop resolution. Right click on Desktop -> Screen Resolution -> Note the value. (i.e. 1024x768)
+		</li>
+		<li>
+			Launch file explorer, and navigate to NWN Root directory where nwmain.exe is ( Might be close to C:\Program Files (x86)\Neverwinter Nights\NWN. )
+		</li>
+		<li>
+			Open nwn.ini using notepad. Find the line 'AllowWindowedMode=' This parameter should be set to 1. Now find and make sure the 'FullScreen=' parameter is equal to 0.
+		</li>
+		
+		<h4>NWN.ini -> The values in this example are relative and should be used as a pattern reference only.</h4>
+		
+		<li>
+			In that file, find the parameter 'Height=' Try something like 700 (**RELATIVE**, remember to subtract from YOUR Resolution)
+		</li>
+		<li>
+			Same file, under it, set the 'Width=' parameter equal to something smaller than 1024 (**RELATIVE**, remember to subtract from YOUR Resolution). Try something like 1018.
+		</li>
+		<li>
+			Save this file, and close it. But leave the folder open anyways, since you might need to revisit this.
+		</li>
+		
+		<h4>Make the matching custom NVidia Resolution (* NOTE - If something doesn't work, it might not be compatible with your video card / monitor * )</h4>
+		
+		<li>
+			Open NVIDIA control panel from the destop. Right click on your wallpaper -> NVIDIA Control Panel
+		</li>
+		<li>
+			Go to Change resolution under the Display menu. 
+		</li>
+		<li>
+			Under resolution selection box, make sure the value you noted in step 1 is what is already selected. It should also say (native) next to it. Find and click the Customize button under it..
+		</li>
+		<li>
+			There might be a warning, click yes, if so. "Enable resolutions not exposed by the display" should be checked.
+		</li>
+		<li>
+			Click Create Custom Resolution. Enter the value you computed in step 4 as 'Horizontal Pixels' and the value in step 5 as 'Vertical lines' in their respective boxes in this dialog menu. 
+		</li>
+		<li>
+			Click Test. It will try to use that resolution. Wait, and don't touch your mouse. If your monitor black screens, nothing in this guide will not work for you, but don't worry, it should reset in 15 seconds automatically.
+		</li>
+		<li>
+			If it succeeds, click OK to continue adding the resolution. Now, make sure the ORIGINAL resolution is selected. i.e. 1024x768 (native)
+		</li>
+		<li>
+			Launch NWN. Note results. Repeat all of these steps to tweak and perfect to your OCD pleasures. 
+		</li>
+	</ol>
+</html>
