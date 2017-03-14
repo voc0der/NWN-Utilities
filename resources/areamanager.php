@@ -1,8 +1,8 @@
 <?php
-	include "session.inc.fw.php";
+	include "session.inc.dev.php";
 ?>
-
 <head>
+
 	<script src="assets/jquery-2.1.4.min.js"></script>
 	<link rel="stylesheet" href="assets/jquery-ui.css">
  	<script src="assets/jquery-ui.min.js"></script>
@@ -12,16 +12,23 @@
 	<meta http-equiv="Content-Style-Type" content="text/css">
 	<title>Amia Area Manager</title>
 	<link rel="stylesheet" href="subBlack2o.css" type="text/css" />
-	<style>img.icon { border: 1px solid #FFFFCC; }</style>
+	<style>img.icon { border: 1px solid #FFFFCC; }
+	.button:hover{
+		border: 1px solid #ffaf0f;
+		background: #f58400 url("assets/images/ui-bg_inset-soft_30_f58400_1x100.png") 50% 50% repeat-x;
+		font-weight: bold;
+		color: #151515;
+	}
+	.button:active{
+		color: #FFFFCC;
+		text-decoration: none;
+	}
+	</style>
 
   	<script>
+	var didClick = false;
 	// initialize jQuery ui when page loads
 	$(function() {
-    		$( "input[type=submit], button" )
-      		.button()
-      		.click(function( event ) {
-        	event.preventDefault();
-      		});
 		var blank = 'Select .are file: ';
 		$( "#upload_are" ).nicefileinput({label : blank});
 		blank = 'Select .gic file: ';
@@ -45,8 +52,6 @@
 		$( "#areaFolderNameDownload" ).html(areaHTMLLabel);
 
 		// build download labels
-		// no caps in url scope ((THIS ISNT BEING USED))
-		type = type.toLowerCase();	
 		
 		var are = "<a title='" + areaFolderName + "' href='download.php?path=" + path + "&download_file=" + filename + ".are'>";
 		var gic = "<a title='" + areaFolderName + "' href='download.php?path=" + path + "&download_file=" + filename + ".gic'>";
@@ -150,15 +155,25 @@
 		}	
 		$('#upload').submit();
 	}
+
+	function spawnChooseServer(id,filename,type,path,state) {
+		if(state == 1 && didClick == false) {
+			var tag = $('#asb_' + id);
+			var appendStr = "<div class='ownerQuestion'><h4>Which server owns this area?</h4><br /><form>Amia A <input type='radio' name='radio' value='A' onclick='spawnChooseServer(" + id + ", &quot;" + filename + "&quot;, &quot;" + type + "&quot;, &quot;" + path + "&quot;, &quot;A&quot;);'  /> Amia B <input type='radio' name='radio' value='B' onclick='spawnChooseServer(" + id + ", &quot;" + filename + "&quot;, &quot;" + type + "&quot;, &quot;" + path + "&quot;, &quot;B&quot;);'/></form></div>";
+			$('#td_as_' + id).append(appendStr);
+			didClick = true;
+		} else if (state == "A") {
+			areaswitch(id,filename,type,path,"A");
+		} else if (state == "B") {
+			areaswitch(id,filename,type,path,"B");
+		}
+	}
 	
-	function areaswitch(id,filename,type,path) {
-		
-		alert('This is not done yet, but feel free to poke around.');
-		
+	function areaswitch(id,filename,type,path,server) {
 		// set name display
 		var areaFolderName = $('#'+id+'_areaFolderName').text();
 		var areaShortName = $('#'+id+'_shortname').text();
-		
+
 		// build and set label
 		var areaHTMLLabel = 		"<font style='font-weight: bold;" +
 						"font-family:Verdana,Arial,Helvetica,sans-serif;" +
@@ -171,16 +186,18 @@
 		// build text
 		type = type.toLowerCase();
 		var switchLbl = "";
-		if(type == "half") {
+		if(type == "halfa" || type == "halfb") {
 			switchLbl = "full</b> dynamic?<br /><br /><font style='color:#FF0000'>*</font> This will require NWNX to restart for this area to work.";
 		}
 		else if(type == "full") {
-			switchLbl = "half</b> dynamic?<br /><br /><font style='color:#FF0000'>*</font> This will require a server restart for this area to work.";
+			$('.ownerQuestion').empty();
+			didClick = false;
+			switchLbl = "half</b> dynamic on Amia " + server + "?<br /><br /><font style='color:#FF0000'>*</font> This will require a server restart for this area to work.";
 		}
 		else { //?
 			return;
 		}
-		
+
 		$( '#switch_confirm' ).html("Are you sure you want to move " + areaShortName + " to being <b>" + switchLbl);
 		
 		// set hidden vars
@@ -188,7 +205,8 @@
 		$( "#areaTypeS" ).val(type);
 		$( "#areaFilePathS" ).val(path);
 		$( "#areaFolderNameInS" ).val(areaFolderName);
-		
+		$( "#server").val(server);
+
 		$( "#areaswitch" ).dialog({
 			height: "275",
 			width: "400",
@@ -214,8 +232,6 @@
 	}
   	</script>
 </head>
-
-
 
 <div id="areaupload" title="Area Upload" style="display: none">
 	<form id="upload" action="areamanager.php" method="POST" enctype="multipart/form-data">
@@ -259,6 +275,7 @@
 		<input type="hidden" id="areaFilePathS" name="areaFilePathS" value=""/>
 		<input type="hidden" id="areaFolderNameInS" name="areaFolderNameInS" value=""/>
 		<input type="hidden" id="areaSwitched" name="areaSwitched" value="true"/>
+		<input type="hidden" id="server" name="server" value="true"/>
 	</form>
 </div>
 
@@ -267,15 +284,44 @@
 <?php
   ######## FILE INFO #########
   # name: areamanager.php
-  # author: Faded Wings
-  # date: Nov 24 2015
-
+  # author: RaveN
+  # date: Mar 13 2017
+  ############################
+  
   # resource to list dir and file info
   include 'files.php';
-  # nwn resource directory half dynamic
-  $resourceDirHalfDyn = 'G:\NWN_A\modules\Areas';
-  # nwn resource directory full dynamic
-  $resourceDirFullDyn = 'G:\Resources\Areas';
+  
+  ######## DIR CONFIG #########
+  # production settings
+  if($_SERVER["DOCUMENT_ROOT"] == "G:\Website") {
+	# Amia A half dynamic
+	$resourceDirAHalfDyn = 'G:\NWN_A\modules\Areas';
+	# Amia B half dyanmic 
+	$resourceDirBHalfDyn = 'G:\NWN_B\modules\Areas';
+	# Amia A and B Full Dyanmic
+	$resourceDirFullDyn = 'G:\Resources\Areas';
+	# Action backup folder
+	$resourceDirBackup = 'G:\Area_Backup';
+  } else {
+  # dev mode
+  $resourceDirAHalfDyn = '/volume1/web/amia/resources_half';
+  $resourceDirBHalfDyn = '/volume1/web/amia/resources_half2';
+  $resourceDirFullDyn = '/volume1/web/amia/resources';
+  $resourceDirBackup = '/volume1/web/amia/area_backup';
+  }
+  
+  ##############################
+  
+  # linux uses '/' while windows uses '\'
+  if(strpos($resourceDirAHalfDyn,'\\') === false && strpos($resourceDirBHalfDyn,'\\') === false && strpos($resourceDirFullDyn,'\\') === false) {
+	$folderDelimiter = "/";
+  }
+  else if(strpos($resourceDirAHalfDyn,'/') === false && strpos($resourceDirBHalfDyn,'/') === false && strpos($resourceDirFullDyn,'/') === false) {
+	$folderDelimiter = "\\";
+  }
+  else {
+	  echo "Invalid folder nesting in 'areamanager.php'. Use only one '/' or '\' direction.";
+  }
 
   # check and handle incoming upload 
   
@@ -286,27 +332,6 @@
 	$areaFilePath = base64_decode($_POST["areaFilePath"]);
 	
 	foreach($uploadedFiles as $uploadFileName ) {
-			/*
-			if(isset($_FILES[$uploadFileName]['error']) {
-				
-				# check $_FILES['uploadFileName']['error'] value.
-				switch ($_FILES[$uploadFileName]['error']) {
-					case UPLOAD_ERR_OK:
-							return;
-					case UPLOAD_ERR_NO_FILE:
-							echo "Error, no file was found!"
-							return;
-					case UPLOAD_ERR_INI_SIZE:
-					case UPLOAD_ERR_FORM_SIZE:
-							echo "Error, form file exceeded limit!"
-							return;
-					default:
-							echo "Error, sorry don't know what happened!"
-							return;
-				}
-				
-			}*/
-			
     		# filesize validator 
     		if ($_FILES[$uploadFileName]['size'] > 1000000) {
         		echo "Error, exceeded file size limit!";
@@ -326,62 +351,199 @@
 			
 	}
 	if(isset($_POST["areaType"]) && $_POST["areaType"] === "Half") {
-		echo "<font color='#FFFFCC'>*** Half Dynamic Area: {$_POST['areaFolderNameIn']} has been uploaded successfully! (Live After Next Reset or Area Respawn)</font><br />";
+		echo "<font style='color: #33CC33'>*** Half Dynamic Area: {$_POST['areaFolderNameIn']} has been uploaded successfully! (Live After Next Reset or Area Respawn)</font><br />";
 	}
 	else {
-		echo "<font color='#FFFFCC'>*** Full Dynamic Area: {$_POST['areaFolderNameIn']} has been uploaded successfully! (Live After Area Next Spawns)</font><br />";
+		echo "<font style='color: #33CC33'>*** Full Dynamic Area: {$_POST['areaFolderNameIn']} has been uploaded successfully! (Live After Area Next Spawns)</font><br />";
 	}
   } 
   
-  # check for switched areas
+  # check for switched area types
   if(isset($_POST["areaSwitched"]) && $_POST["areaSwitched"] == true) {
-	  
+
 	  # grab form var
+	  if(isset($_POST["server"]) && $_POST["server"] != "") {
+		  $server = $_POST["server"]; 
+		  if($server == "A") {
+			  $resourceDirHalfDyn = $resourceDirAHalfDyn;
+		  } else if ($server == "B") {
+			  $resourceDirHalfDyn = $resourceDirBHalfDyn;
+		  }
+	  }
+	  else { 
+		  echo "<font style='color:#FF0000'>*** Unknown Error (0)! ***</font>";
+		  return;
+	  } 
+
 	  if(isset($_POST["areaFilePathS"]) && $_POST["areaFilePathS"] != "") {
 		  $areaFilePath = base64_decode($_POST["areaFilePathS"]); 
 	  }
-	  else {
-		  # nothing to do here
+	  else { 
+		  echo "<font style='color:#FF0000'>*** Unknown Error (1)! ***</font>";
 		  return;
-	  }
+	  } # nothing to do here missing form variables
 	  
+	  if(isset($_POST["areaFileNameS"]) && $_POST["areaFileNameS"] !== "") {
+		  $areaFileName = $_POST["areaFileNameS"];
+	  }
+	  else { 
+		  echo "<font style='color:#FF0000'>*** Unknown Error (2)! ***</font>";
+		  return;
+	  } # nothing to do here missing form variables
+	  if(isset($_POST["areaTypeS"]) && $_POST["areaTypeS"] !== "") {
+		  $areaType = $_POST["areaTypeS"];
+	  }
+	  else { 
+		  echo "<font style='color:#FF0000'>*** Unknown Error (3)! ***</font>";
+		  return;
+	  } # nothing to do here missing form variables
+	  
+	  # get end of new path
+	  if(strpos($areaFilePath,$resourceDirHalfDyn) === 0) {
+		  $abbreviatedFolderName = rtrim(substr($areaFilePath, strlen($resourceDirHalfDyn)),$folderDelimiter);
+	  }
+	  else if(strpos($areaFilePath,$resourceDirFullDyn) === 0) {
+		  $abbreviatedFolderName = rtrim(substr($areaFilePath, strlen($resourceDirFullDyn)),$folderDelimiter);
+	  }
+		
 	  # make full dynamic
-	  if(isset($_POST["areaTypeS"]) && $_POST["areaTypeS"] == "Half") {
-		echo "Future path: {$resourceDirFullDyn}<br /> Current Path: {$areaFilePath}";
+	  if($areaType == "halfa" || $areaType == "halfb") {
+			$currentPath = $resourceDirHalfDyn . $abbreviatedFolderName;
+			$futurePath = $resourceDirFullDyn . $abbreviatedFolderName;
+			$cleanDir = $resourceDirHalfDyn;
+			$areaType = "full";
+			switchAreaType($currentPath,$futurePath,$areaFileName,$resourceDirBackup,$cleanDir,$folderDelimiter);
 	  }
 	  #make half dynamic
-	  else {
-		echo "Future path: {$resourceDirHalfDyn}<br /> Current Path: {$areaFilePath}"; 
+	  else if($areaType == "full") {
+			$currentPath = $resourceDirFullDyn . $abbreviatedFolderName;
+			$futurePath = $resourceDirHalfDyn . $abbreviatedFolderName; 
+			$cleanDir = $resourceDirFullDyn;
+			$areaType = "half" . $server;
+			switchAreaType($currentPath,$futurePath,$areaFileName,$resourceDirBackup,$cleanDir,$folderDelimiter);
 	  }
+	  else { 
+		  echo "<font style='color:#FF0000'>*** Unknown Error (3)! ***</font>";
+		  return;
+	  } # nothing to do here missing form variables
+	  
+  echo "<font style='color: #33CC33'>*** Area: {$_POST['areaFolderNameInS']} has been made " . $areaType ." dynamic successfully!</font> <font style='color:#FF0000'>* Requires NWNX Restart for area to work as normal.</font><br />";
   }
 
   # functions 
+  function switchAreaType($currentPath,$futurePath,$areaFileName,$resourceDirBackup,$cleanDir,$folderDelimiter) {
+	  
+	  # determine if the folder exists
+	  if(!is_dir($futurePath)) {
+			mkdir($futurePath, 0777, true);
+	  }
+	  if(!is_dir($futurePath)) {
+		  echo "<font style='color: #FF0000'>*** Error: Unable to create folder to move to the new dynamic type!</font>";
+		  return;
+	  }
+	  
+	  $fileTypeAR = array('.are','.gic','.git');
+	  
+	  # iterate files
+	  foreach($fileTypeAR as $ext) {
+			$source = $currentPath . $folderDelimiter . $areaFileName . $ext;
+			$backup = $resourceDirBackup . $folderDelimiter . $areaFileName . $ext;
+			$destination = $futurePath . $folderDelimiter . $areaFileName . $ext;
+			
+			# verify source file
+			if(!is_file($source)) {
+				echo "<font style='color: #FF0000'>*** Error: Unable to find source file {$areaFileName}{$ext}!</font>";
+				return;
+			}
+			
+			# copy to backup folder
+			if(!copy($source,$backup)) {
+				echo "<font style='color: #FF0000'>*** Error: Failed to backup file {$areaFileName}{$ext}!</font>";
+				return;
+			}
+			
+			# move to new folder
+			if(!rename($source,$destination)) {
+				echo "<font style='color: #FF0000'>*** Error: Failed to copy file {$areaFileName}{$ext}!</font>";
+				return;
+			}
+			
+			# clean source folder
+			$emptyDir = is_dir_empty($currentPath);
+			
+			while($emptyDir) {
+				# dangerous function here, if configured improperly
+				rmdir($currentPath);
+				
+				# if not equal to base folder, keep trimming
+				$currentPath = strrev($currentPath);
+				$delimiter = strpos($currentPath,$folderDelimiter);
+				$currentPath = substr($currentPath, $delimiter, strlen($currentPath) + 1);
+				$currentPath = strrev($currentPath);
+				
+				# hit base folder, done
+				if(strpos($currentPath,$cleanDir) !== 0) {
+					break;
+				}
+				$emptyDir = is_dir_empty($currentPath);
+			}
+	  }
+  }
+  
+  function is_dir_empty($dir) {
+	  if (!is_readable($dir)) return NULL; 
+	  $handle = opendir($dir);
+	  while (false !== ($entry = readdir($handle))) {
+		if ($entry != "." && $entry != "..") {
+		  return FALSE;
+		}
+	  }
+	  return TRUE;
+  }
+  
   function formatDateTime($dateLastModified) {
 	$dateLastModified = gmdate("m/d/Y h:i A",$dateLastModified);
 	return $dateLastModified;
   }
+  
+  function formatTimeHours($unixTime) {
+		$date = new DateTime();
+		$dateNow = $date->setTimestamp(time());
+		$date = new DateTime();
+		$dateFile = $date->setTimestamp($unixTime);
+		
+		$timeDistance = $dateNow->diff($dateFile);
+		$timeDistance = $timeDistance->format('%a day(s) and %h hour(s)');
+		
+	return $timeDistance;  
+  }
 
-  # main
- 
   # populate half dynamic array  
-  $halfDynAR = read_all_files($resourceDirHalfDyn);
+  $halfDynAAR = read_all_files($resourceDirAHalfDyn);
+  $halfDynBAR = read_all_files($resourceDirBHalfDyn);
+  
   # populate full dynamic array 
   $fullDynAR = read_all_files($resourceDirFullDyn);
   
   # merge list from both folders
-  $mergeFileNameAR = array_merge($halfDynAR["files"],$fullDynAR["files"]);
-  $mergeFolderListAR = array_merge($halfDynAR["dirs"],$fullDynAR["dirs"]);
+  $mergeFileNameAR = array_merge($halfDynAAR["files"], $fullDynAR["files"], $halfDynBAR["files"]);
+
+  
+  $mergeFolderListAR = array_merge($halfDynAAR["dirs"],$halfDynBAR["dirs"],$fullDynAR["dirs"]);
   
   $resourcesAR = array();
 
   # build folder list with array 
   foreach($mergeFolderListAR as $foldername) {
   	# determine which folder length to trim
-	if(strpos($foldername,$resourceDirHalfDyn) === 0) {
-		$abbreviatedFolderName = rtrim(substr($foldername, strlen($resourceDirHalfDyn)),"\\");
+	if(strpos($foldername,$resourceDirAHalfDyn) === 0) {
+		$abbreviatedFolderName = rtrim(substr($foldername, strlen($resourceDirAHalfDyn)),$folderDelimiter);
   	}
+	else if(strpos($foldername,$resourceDirBHalfDyn) === 0) {
+		$abbreviatedFolderName = rtrim(substr($foldername, strlen($resourceDirBHalfDyn)),$folderDelimiter);
+	}
   	else if(strpos($foldername,$resourceDirFullDyn) === 0) {
-		$abbreviatedFolderName = rtrim(substr($foldername, strlen($resourceDirFullDyn)),"\\");
+		$abbreviatedFolderName = rtrim(substr($foldername, strlen($resourceDirFullDyn)),$folderDelimiter);
   	}
 
         $resourcesAR[$abbreviatedFolderName] = $foldername;
@@ -403,14 +565,14 @@
 			# check if full match
 			$testStr = substr($areaFileName,strlen($areaFilePath));
 			# if a slash is present, it is not the parent
-			if(strpos($testStr,'\\') === false) {
+			if(strpos($testStr,$folderDelimiter) === false) {
 				$extension = substr($testStr,strpos($testStr,'.') + 1);
 				$areasAR[$i][$extension] = $areaFileName;
 				# get shortname reverse
-				$reverseCount = strpos(strrev($areaFolderName),'\\');
+				$reverseCount = strpos(strrev($areaFolderName),$folderDelimiter);
 				$areasAR[$i]["shortname"] = substr($areaFolderName, -$reverseCount);
 				# parse reverse
-				$reverseCount = strpos(strrev($areaFileName),'\\');
+				$reverseCount = strpos(strrev($areaFileName),$folderDelimiter);
 				$areaFileName = substr($areaFileName, -$reverseCount);
 				# strip extension
 				$areaFileName = strrev($areaFileName);
@@ -421,13 +583,17 @@
 				# add folder name
 				$areasAR[$i]["folder"] = $areaFolderName;
 				# determine half or full dynamic 
-				$testStrA = strpos($areaFolderName,$resourceDirHalfDyn);
+				$testStrA = strpos($areaFolderName,$resourceDirAHalfDyn);
+				if($testStrA === false) $testStrA = strpos($areaFolderName,$resourceDirBHalfDyn);
 				$testStrB = strpos($areaFolderName,$resourceDirFullDyn);
 
 				if($testStrA === false && $testStrB === false) {
-					if(strpos($areaFilePath,$resourceDirHalfDyn) === 0) {
-						$areasAR[$i]["type"] = "Half";
+					if(strpos($areaFilePath,$resourceDirAHalfDyn) === 0) {
+						$areasAR[$i]["type"] = "HalfA";
   					}
+					else if(strpos($areaFilePath,$resourceDirBHalfDyn) === 0) {
+						$areasAR[$i]["type"] = "HalfB";
+					}
   					else if(strpos($areaFilePath,$resourceDirFullDyn) === 0) {
 						$areasAR[$i]["type"] = "Full";
   					}
@@ -508,28 +674,42 @@
 		# shortname title
 		$areaFolderName = $area['folder']; 
 		$area["date_last_modified"] = formatDateTime($area["date_unix"]);
+		# get distance to now 
+		$timeDistance = formatTimeHours($area["date_unix"]);
+		
 		# prepare to pass php vars to js	
 		$name_eval = $area["name"];
 		$type_eval = $area["type"];
-		$path_eval = base64_encode($area["path"]);
+		$module_no = 1;
 
+		if($type_eval == "Full") {
+			$areaSwitcher = "spawnChooseServer";
+		} else if($type_eval == "HalfA") {
+			$areaSwitcher = "areaswitch";
+			$module_no = 1;
+		} elseif ($type_eval == "HalfB") {
+			$areaSwitcher = "areaswitch";
+			$module_no = 2;
+		}
+
+		$path_eval = base64_encode($area["path"]);
 		# do not pass path, get from html because of formatting
 
 		# output row
 		echo "<tr id='{$i}_row'>
-			<td class='messenger5' style='vertical-align:middle' title='{$areaFolderName}' id='{$i}_shortname'><a href='show_area.php?resref=$name_eval&module=1' target='_blank'>{$area['shortname']}</a></td>
+			<td class='messenger5' style='vertical-align:middle' title='{$areaFolderName}' id='{$i}_shortname'><a href='show_area.php?resref=$name_eval&module=$module_no' target='_blank'>{$area['shortname']}</a></td>
 			<td class='messenger5' style='text-align:center; vertical-align:middle'>
-				<button id='dlb_$i' onclick='download({$i},&quot;$name_eval&quot;,&quot;$type_eval&quot;,&quot;$path_eval&quot;);'>Download &#8681;</button>
-				<button id='upb_$i' onclick='upload({$i},&quot;$name_eval&quot;,&quot;$type_eval&quot;,&quot;$path_eval&quot;);'>Upload &#8679;</button>
+				<a class='ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only button' role='button'><span id='dlb_$i' class='ui-button-text' onclick='download({$i},&quot;$name_eval&quot;,&quot;$type_eval&quot;,&quot;$path_eval&quot;);'>Download &#8681;</span></a>
+				<a class='ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only button' role='button'><span id='upb_$i' class='ui-button-text' onclick='upload({$i},&quot;$name_eval&quot;,&quot;$type_eval&quot;,&quot;$path_eval&quot;);'>Upload &#8679;</span></a>
 			</td>
-			<td class='messenger5' style='text-align:center; vertical-align:middle;'>
-				<button id='asb_$i' onclick='areaswitch({$i},&quot;$name_eval&quot;,&quot;$type_eval&quot;,&quot;$path_eval&quot;)'>{$type_eval} &#9851;</button>
+			<td id='td_as_{$i}' class='messenger5' style='text-align:center; vertical-align:middle;'>
+				<a class='ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only button' role='button'><span id='asb_$i' class='ui-button-text' onclick='$areaSwitcher({$i},&quot;$name_eval&quot;,&quot;$type_eval&quot;,&quot;$path_eval&quot;,1)'>{$type_eval} &#9851;</span></a>
 			</td>
 			<td class='messenger5' style='text-align:center; vertical-align:middle;'>{$name_eval}</td>
 			{$are_eval}
 			{$gic_eval}
 			{$git_eval}
-			<td class='messenger5' style='text-align:center; vertical-align:middle;'>{$area["date_last_modified"]}</td>
+			<td class='messenger5' style='text-align:center; vertical-align:middle;' title='$timeDistance'>{$area["date_last_modified"]}</td>
 			<td class='messenger5' style='display: none' id='{$i}_areaFolderName'>{$area['folder']}</td>
 	          </tr>";
 		
